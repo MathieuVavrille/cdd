@@ -1,0 +1,4 @@
+XOR(x1,k1,y1);
+MC(a,b,c,d,e,f,g,h);
+SB(x,y);
+&

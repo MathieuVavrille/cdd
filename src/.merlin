@@ -1,0 +1,8 @@
+EXCLUDE_QUERY_DIR
+B /home/mathieu/.opam/4.07.1+flambda/lib/zarith
+B ../_build/default/src/.bddlib.objs/byte
+S /home/mathieu/.opam/4.07.1+flambda/lib/zarith
+S .
+S parsing
+S saved_bdd
+FLG -w @a-4-29-40-41-42-44-45-48-58-59-60-40 -strict-sequence -strict-formats -short-paths -keep-locs
