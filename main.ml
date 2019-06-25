@@ -37,16 +37,3 @@ let _ = print_endline (" |Time in propagator_active_sb: "^(string_of_float (!tim
 let _ = print_endline (" | |Time in propagator_active_sb not_cons: "^(string_of_float (!time_active_sb_not_cons)))
 let _ = print_endline (" | | |Time in propagator_active_sb not_cons int_of_bdd: "^(string_of_float (!time_active_sb_not_cons_int_of_bdd)))
 let _ = print_endline ("Time in is_solution: "^(string_of_float (!time_is_solution)))
-
-open Useful
-   open Bdd
-let rec generate_set n bound = match bound with
-  | -1 -> []
-  | _ -> if n mod 2 = 0 then bound::(generate_set (n/2) (bound-1)) else generate_set (n/2) (bound-1)
-let _ =
-  let c = ref 0 in
-  let rec test n = match n with
-    | -1 -> ()
-    | _ -> let b = bdd_of_intlist (generate_set n 3) 2 in if (width b < 3 && b != F) then incr c; test (n-1) in
-  test (15);
-  print_endline (string_of_int !c)

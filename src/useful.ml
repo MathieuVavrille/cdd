@@ -177,12 +177,18 @@ let possible_outputs m bdd_fun =
   in
   aux m bdd_fun Bddset.empty
   
-let rec complete_bdd depth =
-  (* Returns the complete BDD of given depth *)
-  match depth with
-  | 0 -> T
-  | _ -> let res = complete_bdd (depth-1) in
-         bdd_of res res
+let complete_bdd =
+  let hash_complete = Hashtbl.create 23 in
+  let rec aux depth =
+    try Hashtbl.find hash_complete depth
+    with Not_found -> 
+      let res = (* Returns the complete BDD of given depth *)
+        match depth with
+        | 0 -> T
+        | _ -> let current = aux (depth-1) in bdd_of current current in
+      Hashtbl.add hash_complete depth res;
+      res
+  in aux
 
 let cutted_bdd =
   (* Return the BDD where we keep only the first bits *)
@@ -356,7 +362,37 @@ let inter_of_union =
                                       with Not_found -> Bddsmap.singleton bdds res);
       res in
   aux
-          
+
+(* if the minimum value of the bdd is c, generates [c,+oo] *)
+let lower_bound =
+  let hash_lower = Hashtbl.create 101 in
+  let rec aux b =
+    try Hashtbl.find hash_lower (ref b)
+    with Not_found ->
+      let res = match b with
+        | T -> T
+        | F -> failwith "Can' generate lower bound of empty bdd"
+        | N(F,a) -> bdd_of F (aux a)
+        | N(a,c) -> bdd_of (aux a) (complete_bdd (depth c)) in
+      Hashtbl.add hash_lower (ref b) res;
+      res
+  in aux 
+
+
+(* if the max value of the bdd is c, generates [0,c] *)
+let upper_bound =
+  let hash_upper = Hashtbl.create 101 in
+  let rec aux b =
+    try Hashtbl.find hash_upper (ref b)
+    with Not_found ->
+      let res = match b with
+        | T -> T
+        | F -> failwith "Can' generate lower bound of empty bdd"
+        | N(a,F) -> bdd_of (aux a) F
+        | N(c,a) -> bdd_of (complete_bdd (depth c)) (aux a) in
+      Hashtbl.add hash_upper (ref b) res;
+      res
+  in aux 
 
 (************************************)
 (* Useful constants or special BDDs *)
