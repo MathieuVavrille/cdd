@@ -18,6 +18,7 @@ rule token = parse    (* la "fonction" aussi s'appelle token *)
   | "XOR"		      { XOR }
   | "SB" 		      { SB }
   | "MC" 		      { MC }
+  | "LE"                      { LE }
   | "CST" 		      { CST }
   | "x_" 		      { XUNDER }
   | "xinit_"		      { XINIT }

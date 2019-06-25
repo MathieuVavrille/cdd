@@ -46,6 +46,7 @@ type cstr = Xor of var * var * var
           | Not_zero of var
           | ActiveSB of (var * var) list * int ref
           | Iscst of var * int
+          | Le of var * var (* var <= var *)
 
 let cstr_compare c1 c2 = match c1, c2 with
   (* When the constraint have the same type, we compare the arguments *)
@@ -62,6 +63,10 @@ let cstr_compare c1 c2 = match c1, c2 with
                                   | 0 -> Pervasives.compare i1 i2
                                   | n -> n
                                   end
+  | Le(s1,i1), Le(s2,i2) -> begin match Pervasives.compare s1 s2 with
+                            | 0 -> Pervasives.compare i1 i2
+                            | n -> n
+                            end
   (* Here we order when the constraints have different types *)
   | Iscst _, _ -> 1
   | _, Iscst _ -> -1
@@ -69,6 +74,8 @@ let cstr_compare c1 c2 = match c1, c2 with
   | _, Not_zero _ -> -1
   | Xor _, _ -> 1
   | _, Xor _ -> -1
+  | Le _, _ -> 1
+  | _, Le _ -> -1
   | Mc _, _ -> 1
   | _, Mc _ -> -1
 
@@ -82,7 +89,8 @@ let string_of_cstr c = match c with
   | Mc(a,b,c,d,e,f,g,h) -> "MC("^(string_of_var a)^","^(string_of_var b)^","^(string_of_var c)^","^(string_of_var d)^","^(string_of_var e)^","^(string_of_var f)^","^(string_of_var g)^","^(string_of_var h)^")"
   | Not_zero(a) -> "NOT_ZERO("^(string_of_var a)^")"
   | ActiveSB(l, b) -> "ACTIVESB("^(string_of_list (fun (x,y) -> (string_of_var x)^","^(string_of_var y)) l)^","^(string_of_int !b)^")"
-  | Iscst(s,i) -> "Is_cst("^(string_of_var s)^","^(string_of_int i)^")"  
+  | Iscst(s,i) -> "Is_cst("^(string_of_var s)^","^(string_of_int i)^")"
+  | Le(a,b) -> string_of_var a^"<="^string_of_var b
                 
 (* Returns all the variables that have been modified *)
 let get_modified = List.fold_left (fun acc (x,bdd,res) -> if bdd == res then acc else x::acc) []
@@ -316,7 +324,16 @@ let propagator_active_sb l b store cstrbdd = (* TODO Improve the propagator_acti
   time_active_sb := !time_active_sb +. Sys.time () -. t;
   res_store, cstrbdd, res_vars
 
-
+let propagator_le a b store cstrbdd =
+  let bdda,wa = Store.find a store in
+  let bddb,wb = Store.find b store in
+  let res_a = improved_consistency bdda (upper_bound bddb) wa random_heuristic_improved_consistency in
+  let res_b = improved_consistency bddb (lower_bound bdda) wb random_heuristic_improved_consistency in
+  Store.add a (res_a,wa) (Store.add b (res_b,wb) store),
+  cstrbdd,
+  get_modified [a,bdda,res_a;b,bddb,res_b]
+  
+  
   
 (*let time_active_sb = ref 0.
 let time_active_sb_not_cons = ref 0.
@@ -343,7 +360,8 @@ let propagate cstr store cstrbdds first =
     | Mc(a,b,c,d,e,f,g,h) -> propagator_mc a b c d e f g h store current_cstrbdd first
     | Not_zero(a) -> propagator_not_zero a store current_cstrbdd
     | ActiveSB(l,b) -> propagator_active_sb l !b store current_cstrbdd
-    | Iscst(a,i) -> propagator_cst i a store current_cstrbdd in
+    | Iscst(a,i) -> propagator_cst i a store current_cstrbdd
+    | Le(a,b) -> propagator_le a b store current_cstrbdd in
   new_store, Cstrmap.add cstr new_cstrbdd cstrbdds, modified_vars
                   
 let vars_of_cstr cstr = match cstr with
@@ -352,6 +370,7 @@ let vars_of_cstr cstr = match cstr with
   | Mc(a,b,c,d,e,f,g,h) -> Varset.add a (Varset.add b (Varset.add c (Varset.add d (Varset.add e (Varset.add f (Varset.add g (Varset.add h Varset.empty)))))))
   | Not_zero(a) | Iscst(a,_) -> Varset.add a Varset.empty
   | ActiveSB(l, _) -> List.fold_left (fun acc (var_in, var_out) -> Varset.add var_in (Varset.add var_out acc)) Varset.empty l
+  | Le (a,b) -> Varset.add a (Varset.add b Varset.empty)
 
 
 let time_all_propag = ref 0.
@@ -412,6 +431,9 @@ let init_domain cstrset width =
                              Store.add var_in (complete8, ws) (Store.add var_out (input_output_inverse_sbox, winverse) complete_acc),
                              Store.add var_in (add_or_create var_in cstr_to_var_acc cstr) (Store.add var_out (add_or_create var_out cstr_to_var_acc cstr) cstr_to_var_acc),
                              cstrmap_do_not_touch) (store_acc, cstrset_acc, Cstrmap.add cstr (F,width) cstrmap_acc) l
+      | Le(a,b) -> add_list_to_store [a,complete8,width;b,complete8,width] store_acc,
+                      Store.add a (add_or_create a cstrset_acc cstr) (Store.add b (add_or_create b cstrset_acc cstr) cstrset_acc),
+                      cstrmap_acc
     ) cstrset (Store.empty, Store.empty, Cstrmap.empty)
 
 (* A function that applies the unary constraints, and return a new store and a new constraint set that are not enforces *)
@@ -462,6 +484,11 @@ let is_solution_xor a b c cststore =
   let cb = Store.find b cststore in
   let cc = Store.find c cststore in
   ca lxor cb = cc
+  
+let is_solution_le a b cststore =
+  let ca = Store.find a cststore in
+  let cb = Store.find b cststore in
+  ca <= cb
 
 let is_solution_mc a b c d e f g h cststore =
   let ca = Store.find a cststore in
@@ -496,6 +523,7 @@ let is_solution_cstr cstr cststore =
   | Not_zero(a) -> Store.find a cststore <> 0, 0
   | ActiveSB(l,b) -> is_solution_active_sb l !b cststore
   | Iscst(a,i) -> Store.find a cststore = i, 0
+  | Le(a,b) -> is_solution_le a b cststore, 0
 
 let time_is_solution = ref 0.
 let is_solution cstrset cststore =

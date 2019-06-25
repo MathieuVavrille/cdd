@@ -7,7 +7,7 @@
 /* description des lexèmes, ceux-ci sont décrits dans lexer.mll */
 
 %token <int> INT
-%token XOR MC SB CST
+%token XOR MC SB CST LE
 %token COMMA SEMIC
 %token LPAREN RPAREN UNDER
 %token ZERO NOTZERO
@@ -28,6 +28,7 @@ main:
 
 cstr:
   | END            { Cstrset.empty }
+  | LE LPAREN variable COMMA variable RPAREN SEMIC cstr                 { Cstrset.add (Le($3,$5)) $8 }
   | XOR LPAREN variable COMMA variable COMMA variable RPAREN SEMIC cstr { Cstrset.add (Xor($3, $5, $7)) $10 }
   | MC LPAREN variable COMMA variable COMMA variable COMMA variable COMMA variable COMMA variable COMMA variable COMMA variable RPAREN SEMIC cstr { Cstrset.add (Mc($3, $5, $7, $9, $11, $13, $15, $17)) $20 }
   | SB LPAREN variable COMMA variable RPAREN SEMIC cstr { all_sbox := ($3, $5)::(!all_sbox); $8 }
