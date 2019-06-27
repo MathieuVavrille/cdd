@@ -9,10 +9,12 @@ type var = X of int * int * int
          | SK of int * int (* It is always on the third column *)
          | Z of int * int * int
 
-let improved_consistency a b _ _ = intersection a b
+let do_limited = true
+                   (*
+let improved_consistency a b _ _ = (if do_limited then mdd_consistency else intersection) a b
 
-let improved_consistency_multiple a b _ _ = inter_of_union a b
-              
+let improved_consistency_multiple a b _ _ = (if do_limited then multiple_mdd_consistency else inter_of_union) a b
+                    *)
 (* A comparison function between variables, simply to have a total order between them *)
 let compare_var v1 v2 = match v1, v2 with
   | X(i1,i2,i3), X(j1,j2,j3)
