@@ -153,16 +153,16 @@ let equal m m' = bdd_compare m m' = 0
 (* Bitwise operations *)   
 
 let bdd_not =
-  let hash_and = Hashtbl.create 101 in
+  let hash_not = Hashtbl.create 101 in
   let rec aux m =
-    try Hashtbl.find hash_and (ref m)
+    try Hashtbl.find hash_not (ref m)
     with Not_found ->
           let res =
             match m with
             | N(a,b) -> bdd_of (aux b) (aux a)
             | _ -> m
           in
-          Hashtbl.add hash_and (ref m) res;
+          Hashtbl.add hash_not (ref m) res;
           res
   in aux
   

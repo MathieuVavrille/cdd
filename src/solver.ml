@@ -10,11 +10,11 @@ type var = X of int * int * int
          | Z of int * int * int
 
 let do_limited = true
-                   (*
+                   
 let improved_consistency a b _ _ = (if do_limited then mdd_consistency else intersection) a b
 
 let improved_consistency_multiple a b _ _ = (if do_limited then multiple_mdd_consistency else inter_of_union) a b
-                    *)
+                    
 (* A comparison function between variables, simply to have a total order between them *)
 let compare_var v1 v2 = match v1, v2 with
   | X(i1,i2,i3), X(j1,j2,j3)
@@ -538,8 +538,11 @@ let store_size store =
   Store.fold (fun _ (v,_) acc -> B.mult_big_int (cardinal v) acc) store B.unit_big_int
   
 let time_full_propag = ref 0.
+let nb_nodes = ref 0
+let nb_fails = ref 0
 let rec backtrack cstrset store cstrbdds acc depth modified_var (cstr_of_var, sbox_vars, cstr_bound, one_cst) =
   let t = Sys.time () in
+  incr nb_nodes;
   let propagated_store, propagated_cstrbdds = full_propagation 
                            (match modified_var with
                             | None -> cstrset
@@ -549,11 +552,11 @@ let rec backtrack cstrset store cstrbdds acc depth modified_var (cstr_of_var, sb
   time_full_propag := !time_full_propag +. Sys.time () -. t;
   (*Store.iter (fun k (bdd,_) -> if cardinal bdd > B.unit_big_int then print_endline ((string_of_var k)^" "^(B.string_of_big_int (cardinal bdd)))) propagated_store;*)
   match Store.is_empty propagated_store, store_size propagated_store with
-  | true, _ -> acc
-  | _, n when n = B.zero_big_int -> acc
+  | true, _ -> incr nb_fails;acc
+  | _, n when n = B.zero_big_int -> incr nb_fails;acc
   | _, n when n = B.unit_big_int -> let cststore = Store.fold (fun key (bdd,_) acc -> Store.add key (int_of_bdd (cutted_bdd 8 bdd)) acc) propagated_store Store.empty in
                                     let is_sol, prob = is_solution cstrset cststore in
-                                    if is_sol then (print_endline "one_solution"; print_endline ("proba = "^(string_of_int prob));cstr_bound := prob + 1;(cststore, prob)) else acc
+                                    if is_sol then (print_endline "one_solution"; print_endline ("proba = "^(string_of_int prob));cstr_bound := prob + 1;(cststore, prob)) else (incr nb_fails;acc)
   | _ -> let split_stores, split_var = split_store propagated_store sbox_vars in
          List.fold_left (fun new_acc backtrack_store -> backtrack cstrset backtrack_store propagated_cstrbdds new_acc (depth+1) (Some split_var) (cstr_of_var, sbox_vars, cstr_bound, one_cst)) acc split_stores
      

@@ -17,7 +17,7 @@ let main width =
   Store.iter (fun key value -> if value != 0 then print_endline (string_of_var key^" : "^(string_of_int value))) best_store;
   print_endline ("Best Solution with Proba "^(string_of_int best_prob))
 
-let res = main 2
+let res = main 200
         
 let _ = print_endline ("Time in initialization: "^(string_of_float (!preprocessing_time)))
 let _ = print_endline ("Time in propagation fun: "^(string_of_float (!time_full_propag)))
@@ -37,3 +37,5 @@ let _ = print_endline (" |Time in propagator_active_sb: "^(string_of_float (!tim
 let _ = print_endline (" | |Time in propagator_active_sb not_cons: "^(string_of_float (!time_active_sb_not_cons)))
 let _ = print_endline (" | | |Time in propagator_active_sb not_cons int_of_bdd: "^(string_of_float (!time_active_sb_not_cons_int_of_bdd)))
 let _ = print_endline ("Time in is_solution: "^(string_of_float (!time_is_solution)))
+let _ = print_endline ("Nb nodes "^(string_of_int !nb_nodes))
+let _ = print_endline ("Nb fails "^(string_of_int !nb_fails))
