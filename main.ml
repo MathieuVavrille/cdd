@@ -5,7 +5,7 @@ let _ = Random.init 0
 let preprocessing_time = ref 0.
 let main width =
   let t = Sys.time () in
-  let in_file = open_in "examples/ex1round3.txt" in
+  let in_file = open_in "examples/ex3round4.txt" in
   let lexbuf_file = Lexing.from_channel in_file in
   let parse () = Parser.main Lexer.token lexbuf_file in
   let cstrset, sbox_vars, cstr_bound = parse () in
@@ -17,7 +17,7 @@ let main width =
   Store.iter (fun key value -> if value != 0 then print_endline (string_of_var key^" : "^(string_of_int value))) best_store;
   print_endline ("Best Solution with Proba "^(string_of_int best_prob))
 
-let res = main 200
+let res = main 1
         
 let _ = print_endline ("Time in initialization: "^(string_of_float (!preprocessing_time)))
 let _ = print_endline ("Time in propagation fun: "^(string_of_float (!time_full_propag)))
